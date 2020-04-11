@@ -1,0 +1,73 @@
+﻿
+using UnityEngine;
+using MLAgents;
+using MLAgents.Sensors;
+
+public class Robot : Agent
+{
+    [Header("速度"), Range(1, 50)]
+    public float speed = 10;
+
+
+    private Rigidbody rigidrobot;
+    private Rigidbody rigidball;
+
+    private void Start()
+    {
+        rigidrobot = GetComponent<Rigidbody>();
+        rigidball = GameObject.Find("足球").GetComponent<Rigidbody>();
+    }
+
+    public override void OnEpisodeBegin()
+    {
+        rigidrobot.velocity = Vector3.zero;
+        rigidrobot.angularVelocity = Vector3.zero;
+        rigidball.velocity = Vector3.zero;
+        rigidball.angularVelocity = Vector3.zero;
+
+        Vector3 posRobot = new Vector3(Random.Range(-2f, 2f), 0.1f, Random.Range(-2f, 0f));
+        transform.position = posRobot;
+
+        Vector3 posBall = new Vector3(Random.Range(-2f, 2f), 0.1f, Random.Range(1f, 2f));
+        rigidball.position = posBall;
+
+        Ball.complete = false;
+    }
+
+    public override void CollectObservations(VectorSensor sensor)
+    {
+        sensor.AddObservation(transform.position);
+        sensor.AddObservation(rigidball.position);
+        sensor.AddObservation(rigidrobot.velocity.x);
+        sensor.AddObservation(rigidrobot.velocity.z);
+    }
+
+    public override void OnActionReceived(float[] vectorAction)
+    {
+        Vector3 control = Vector3.zero;
+        control.x = vectorAction[0];
+        control.y = vectorAction[1];
+        rigidrobot.AddForce(control * speed);
+
+        if (Ball.complete)
+        {
+            SetReward(1);
+            EndEpisode();
+        }
+
+        if(transform.position.y <0 || rigidball.position.y <0)
+        {
+            SetReward(-1);
+            EndEpisode();
+        }
+    }
+
+    public override float[] Heuristic()
+    {
+        var action = new float[2];
+        action[0] = Input.GetAxis("Horizontal");
+        action[1] = Input.GetAxis("Vertical");
+        return action;
+    }
+
+}
